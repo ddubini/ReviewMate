@@ -1,4 +1,5 @@
 # app/routers/auth.py
+# 구글 로그인 → 유저 upsert → JWT(액세스+리프레시) 발급과 리프레시로 재발급(실사용임)
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
-# 👉 개발 모드에서도 import는 유지(실모드에 필요)
+# 개발 모드에서도 import는 유지(실제 모드에 필요)
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
@@ -20,9 +21,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/google", response_model=AuthResponse)
 def google_login(payload: GoogleLoginIn, session: Session = Depends(get_session)):
-    # -------------------------
+    
     # 1) Google id_token 검증 (개발 모드면 스킵)
-    # -------------------------
+    
     if settings.DEV_SKIP_GOOGLE_VERIFY:
         # 가짜 idinfo (원하면 email 등 바꿔도 됨)
         idinfo = {
@@ -45,9 +46,9 @@ def google_login(payload: GoogleLoginIn, session: Session = Depends(get_session)
                 detail=f"Google token verify failed: {str(e)}",
             )
 
-    # -------------------------
+    
     # 2) 필수 클레임
-    # -------------------------
+    
     sub = idinfo.get("sub")
     email = idinfo.get("email")
     name = idinfo.get("name")
@@ -59,9 +60,9 @@ def google_login(payload: GoogleLoginIn, session: Session = Depends(get_session)
             detail="Google token missing required claims",
         )
 
-    # -------------------------
+    
     # 3) 사용자 upsert
-    # -------------------------
+    
     try:
         user = session.exec(select(User).where(User.google_sub == sub)).first()
         if not user:
@@ -86,9 +87,9 @@ def google_login(payload: GoogleLoginIn, session: Session = Depends(get_session)
         print("[/auth/google] DB unexpected error:", repr(e))
         raise HTTPException(status_code=500, detail="DB error")
 
-    # -------------------------
+    
     # 4) 토큰 페어 발급
-    # -------------------------
+    
     tokens = issue_token_pair(sub=str(user.id), email=user.email)
 
     return AuthResponse(

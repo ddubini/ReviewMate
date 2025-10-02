@@ -36,7 +36,7 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 security = HTTPBearer()
 
 
-# --- 인증 헬퍼: 액세스 토큰에서 user_id 추출 ---
+# 인증 헬퍼: 액세스 토큰에서 user_id 추출 
 def current_user_id(
     creds: HTTPAuthorizationCredentials = Depends(security),
 ) -> int:
@@ -51,9 +51,9 @@ def current_user_id(
     return int(sub)
 
 
-# ======================
+
 # 1) 리뷰 요청 → 자동 초안 생성
-# ======================
+
 @router.post("/requests", response_model=ReviewRequestOut, status_code=status.HTTP_201_CREATED)
 def create_request(
     body: ReviewRequestIn,
@@ -120,9 +120,9 @@ def list_requests(
     ).all()
 
 
-# ======================
+
 # 2) 드래프트 목록/생성 (기존 기능 유지)
-# ======================
+
 @router.get("/drafts", response_model=List[ReviewDraftOut])
 def list_drafts(
     user_id: int = Depends(current_user_id),
@@ -165,9 +165,9 @@ def create_draft(
     return draft
 
 
-# ======================
+
 # 3) 챗봇형 이어쓰기
-# ======================
+
 @router.post("/chat", response_model=ChatOut)
 def chat(
     body: ChatIn,

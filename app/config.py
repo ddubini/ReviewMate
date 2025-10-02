@@ -1,20 +1,23 @@
-# settings.py
+# config.py
 from typing import List, Union
+# 환경변수를 읽어와서 클래스 속성으로 매칭
 from pydantic_settings import BaseSettings, SettingsConfigDict
+# 필드 값이 로드될 때 유효성 검사/전처리
 from pydantic import field_validator
 import json
 
+#
 
 class Settings(BaseSettings):
-    # ---- DB & CORS ----
+    # DB & CORS 
     DATABASE_URL: str
     CORS_ORIGINS: List[str] = []
 
-    # ---- Google OAuth ----
+    # Google OAuth
     GOOGLE_CLIENT_ID: str
     DEV_SKIP_GOOGLE_VERIFY: bool = False
 
-    # ---- JWT ----
+    # JWT
     JWT_SECRET: str
     JWT_ALG: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -27,17 +30,20 @@ class Settings(BaseSettings):
         extra= "ignore",
     )
 
-    # CORS_ORIGINS 값 파싱
+    # Pydantic이 타입으로 강제 변환하기 이전 단계에서 이 함수를 먼저 돌림
+    # 들어온 원시값을 List[str](원하는 형태)로 직접 가공
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        # 리스트로 들어온 경우고 공백, 널값 없애기
         if isinstance(v, list):
             return [s.strip() for s in v if isinstance(s, str) and s.strip()]
+        # 문자열로 들어온 경우
         if isinstance(v, str):
             s = v.strip()
             if not s:
                 return []
-            # JSON 배열 형태일 때
+            # JSON 배열 형태일 경우
             if s.startswith("["):
                 try:
                     arr = json.loads(s)

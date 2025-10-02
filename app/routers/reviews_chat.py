@@ -13,6 +13,7 @@ from app.services.llm import chat_reply
 router = APIRouter(prefix="/chat", tags=["chat"])
 security = HTTPBearer()
 
+
 def current_user_id(creds: HTTPAuthorizationCredentials = Depends(security)) -> int:
     payload = decode_token(creds.credentials)
     ensure_token_type(payload, "access")
@@ -20,6 +21,7 @@ def current_user_id(creds: HTTPAuthorizationCredentials = Depends(security)) -> 
     if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     return int(sub)
+
 
 @router.post("/threads", response_model=ChatThreadOut, status_code=status.HTTP_201_CREATED)
 def create_thread(
@@ -38,6 +40,7 @@ def create_thread(
     session.refresh(thread)
     return thread
 
+
 @router.get("/threads", response_model=List[ChatThreadOut])
 def list_threads(
     user_id: int = Depends(current_user_id),
@@ -48,6 +51,7 @@ def list_threads(
         .where(ReviewChatThread.user_id == user_id)
         .order_by(ReviewChatThread.created_at.desc())
     ).all()
+
 
 @router.get("/threads/{thread_id}/messages", response_model=List[ChatMessageOut])
 def list_messages(
@@ -64,6 +68,7 @@ def list_messages(
         .order_by(ReviewChatMessage.created_at.asc())
     ).all()
 
+
 @router.post("/threads/{thread_id}/messages", response_model=ChatMessageOut, status_code=status.HTTP_201_CREATED)
 def add_message_and_reply(
     thread_id: int,
@@ -72,6 +77,7 @@ def add_message_and_reply(
     user_id: int = Depends(current_user_id),
     session: Session = Depends(get_session),
 ):
+    # 0) 스레드 검증
     thread = session.get(ReviewChatThread, thread_id)
     if not thread or thread.user_id != user_id:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -107,13 +113,21 @@ def add_message_and_reply(
     ).all()
     history = [{"role": m.role, "content": m.content} for m in msgs]
 
-    # 4) 더미 LLM 답변
-    reply_text = chat_reply(session, style_key, history)
+    # 4) LLM 데모 응답 + 스냅샷/메시지 저장(chat_reply 내부에서 스냅샷 저장)
+    reply_text, _ = chat_reply(
+        session,
+        user_id=user_id,
+        history=history,
+        style_key=style_key,
+        thread_id=thread.id,
+        request_id=thread.request_id,
+        style_id=style_id,
+    )
 
     # 5) 어시스턴트 메시지 저장
     asst_msg = ReviewChatMessage(
         thread_id=thread.id,
-        user_id=user_id,  # 같은 소유자 하에 저장
+        user_id=user_id,  # 동일 사용자 소유로 기록
         role="assistant",
         content=reply_text,
     )
@@ -121,4 +135,5 @@ def add_message_and_reply(
     session.commit()
     session.refresh(asst_msg)
 
+    # 6) 방금 생성된 assistant 메시지 반환
     return asst_msg

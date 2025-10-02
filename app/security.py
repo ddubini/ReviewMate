@@ -8,20 +8,21 @@ from jose import jwt, JWTError
 from app.config import settings
 
 
-# --- 토큰 페이로드 타입(런타임 검증용) ---
-class TokenPayload(TypedDict, total=False):
+# 토큰 페이로드 타입(런타임 검증용)
+## 토큰 내부에 들어갈 키들을 타입으로 정의
+class TokenPayload(TypedDict, total=False): # 선택 필드 허용(모든 키가 들어갈 필요 ㄴㄴ)
     sub: str            # 주체(고유 식별자) - 보통 user_id 또는 google_sub
     email: str          # 선택: 액세스 토큰에만 포함 권장
     type: Literal["access", "refresh"]
     exp: int            # 만료(Unix timestamp)
 
 
-# --- 공통 만료 계산 ---
+# 공통 만료 계산 
 def _expire(minutes: int) -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
 
-# --- 액세스 토큰 발급 ---
+# 액세스 토큰 발급 
 def create_access_token(
     sub: str,
     *,
@@ -39,7 +40,7 @@ def create_access_token(
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
 
 
-# --- 리프레시 토큰 발급 ---
+# 리프레시 토큰 발급
 def create_refresh_token(
     sub: str,
     *,
@@ -54,8 +55,9 @@ def create_refresh_token(
     }
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
 
+# 액세스 토큰 만료되면 → 리프레시 토큰으로 자동 갱신 → 사용자는 로그인 유지
 
-# --- 디코드 + 기본 검증 ---
+# 디코드 + 기본 검증
 def decode_token(token: str) -> TokenPayload:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
@@ -68,13 +70,13 @@ def decode_token(token: str) -> TokenPayload:
         raise ValueError(str(e)) from e
 
 
-# --- 토큰 타입 확인 유틸 ---
+# 토큰 타입 확인 유틸 
 def ensure_token_type(payload: TokenPayload, expected: Literal["access", "refresh"]) -> None:
     if payload.get("type") != expected:
         raise ValueError(f"Invalid token type: expected '{expected}', got '{payload.get('type')}'")
 
 
-# --- 액세스/리프레시 한 번에 발급(로그인 응답용) ---
+# 액세스/리프레시 한 번에 발급(로그인 응답용) 두 번 호출하기 귀찮으니께
 def issue_token_pair(
     sub: str,
     *,

@@ -6,13 +6,13 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 
-# -----------------------------
-# 1) Auth / Token
-# -----------------------------
+# 프론트엔드 json 형태로 내려주기
+# Auth / Token(프론트가 받은 ID 토큰을 서버로 보낼 때의 요청 바디)
+
 class GoogleLoginIn(BaseModel):
     id_token: str
 
-
+# 로그인/리프레시 응답에서 토큰 페어를 한 번에 내려줄 때의 응답 바디
 class TokenOut(BaseModel):
     access_token: str
     refresh_token: str
@@ -23,9 +23,9 @@ class RefreshIn(BaseModel):
     refresh_token: str
 
 
-# -----------------------------
-# 2) User & Profile
-# -----------------------------
+
+# User & Profile
+
 class UserOut(BaseModel):
     id: int
     email: str
@@ -36,7 +36,7 @@ class UserOut(BaseModel):
     # Pydantic v2: ORM 객체 직렬화를 허용
     model_config = {"from_attributes": True}
 
-
+# 개인화 정보
 class UserProfileOut(BaseModel):
     id: int
     user_id: int
@@ -53,9 +53,9 @@ class UserProfileOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# -----------------------------
-# 3) Style / Persona
-# -----------------------------
+
+# Style / Persona
+
 class StyleCatalogOut(BaseModel):
     id: int
     key: str
@@ -78,9 +78,9 @@ class PersonaOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# -----------------------------
-# 4) Review Request / Draft
-# -----------------------------
+
+# Review Request / Draft
+
 class ReviewRequestIn(BaseModel):
     restaurant_name: Optional[str] = None
     cuisine_type: Optional[str] = None
@@ -126,9 +126,9 @@ class ReviewDraftOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# -----------------------------
-# 5) 복합 응답
-# -----------------------------
+
+# 복합 응답
+
 class AuthResponse(BaseModel):
     user: UserOut
     tokens: TokenOut
@@ -136,7 +136,7 @@ class AuthResponse(BaseModel):
     closest_style: Optional[StyleCatalogOut] = None
     personas: Optional[List[PersonaOut]] = None
 
-# ---------- 리뷰 요청 ----------
+# 리뷰 요청 
 class ReviewRequestIn(BaseModel):
     restaurant_name: Optional[str] = None
     cuisine_type: Optional[str] = None
@@ -160,7 +160,7 @@ class ReviewRequestOut(BaseModel):
     model_config = {"from_attributes": True}  # SQLModel -> Pydantic 변환용
 
 
-# ---------- 드래프트 ----------
+#  드래프트(리뷰 초안을 클라이언트에 응답할 때 어떤 JSON 형태)
 class ReviewDraftOut(BaseModel):
     id: int
     user_id: int
@@ -175,7 +175,7 @@ class ReviewDraftOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ---------- 챗봇 이어쓰기 ----------
+# 챗봇 이어쓰기 
 class ChatTurn(BaseModel):
     role: str   # "user" | "assistant"
     content: str
@@ -187,9 +187,9 @@ class ChatIn(BaseModel):
 class ChatOut(BaseModel):
     reply: str
 
-# -----------------------------
+
 # 6) Chat History (Thread / Message)
-# -----------------------------
+
 class ChatThreadCreate(BaseModel):
     request_id: Optional[int] = None
     style_id: Optional[int] = None
